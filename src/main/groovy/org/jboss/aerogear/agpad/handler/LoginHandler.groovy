@@ -1,15 +1,15 @@
-package org.jboss.aerogear.agpad;
+package org.jboss.aerogear.agpad.handler;
 
 import com.gmongo.GMongo
 import com.mongodb.DB
-
+import org.jboss.aerogear.agpad.User
 
 import java.security.MessageDigest
 
 class LoginHandler {
 
     private final GMongo mongo = new GMongo()
-    private final DB db = mongo.getDB("checkers")
+    private final DB db = mongo.getDB("pad")
     private final Map<String, User> sessions = [:];
 
     User login(String username, String password) {

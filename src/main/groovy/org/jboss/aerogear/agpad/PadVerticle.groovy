@@ -19,15 +19,12 @@
 package org.jboss.aerogear.agpad
 
 import groovy.util.logging.Log
-import io.netty.handler.codec.http.websocketx.WebSocketServerHandshakerFactory
+import org.jboss.aerogear.agpad.handler.LoginHandler
+import org.jboss.aerogear.agpad.handler.PadHandler
 import org.vertx.groovy.core.buffer.Buffer
 import org.vertx.groovy.core.http.ServerWebSocket
-import org.vertx.groovy.core.http.WebSocket
-import org.vertx.groovy.core.streams.Pump
 import org.vertx.groovy.platform.Verticle
-import groovy.json.JsonBuilder
 import groovy.json.JsonSlurper
-import org.bson.types.ObjectId
 import org.vertx.groovy.core.http.RouteMatcher
 
 import java.util.logging.Level
@@ -44,11 +41,13 @@ class PadVerticle extends Verticle {
 
   def start() {
 
+    def loginHandler = new LoginHandler()
     def routeMatcher = new RouteMatcher()
     def server = vertx.createHttpServer()
-    def loginHandler = new LoginHandler();
+
     Logger log = Logger.getLogger("server")
     def eb = vertx.eventBus
+    def padHandler = new PadHandler(eb);
 
       routeMatcher.get("/auth/login", { req ->
           req.bodyHandler {body ->
@@ -165,6 +164,33 @@ class PadVerticle extends Verticle {
           }
 
 
+      })
+
+      routeMatcher.put("/pad", {req ->
+          User user = loginHandler.getUser(getSessionId(req))
+          if (user == null) {
+              req.response.with {
+                  statusCode = 403
+                  end('')
+              }
+          }  else {
+              def id = req.params.get("id");
+
+
+              req.dataHandler { buffer ->
+                  def body = new Buffer(0)
+
+                  body << buffer
+
+                  vertx.eventBus.send("pad.create", body, { resp ->
+
+                      req.response.with {
+                          statusCode = resp.body.statusCode
+                          end(resp.body.body)
+                      }
+                  })
+              }
+          }
       })
 
       routeMatcher.post("/pad/:id", {req ->
