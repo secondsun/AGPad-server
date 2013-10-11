@@ -67,6 +67,8 @@ dependencies {
   compile "io.vertx:lang-groovy:$groovyLangModVersion@jar"
   compile "com.gmongo:gmongo:1.2"
   compile "org.mongodb:bson:2.9.3"
+  compile files('libs/diff_match_patch-current.jar')
+  compile "commons-codec:commons-codec:1.8"
 //  compile "org.jboss.aerogear.unifiedpush:unified-push-java-client:0.3.0-SNAPSHOT"
 }
 

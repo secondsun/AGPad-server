@@ -22,7 +22,7 @@ class PadHandler {
     private final DB db = mongo.getDB("pad")
     final EventBus bus;
     Map<UUID, Pair<Pad, Pad>> sessionToPadShadows = new HashMap<>();
-    Pair<Pad, Set<Pad>> padToShadows =  new HashSet()
+    Map<Pad, Set<Pad>> padToShadows =  [:]
     Map<Pair<String, String>, Pad> openPads = new HashMap();
 
     PadHandler() {}
@@ -98,4 +98,10 @@ class PadHandler {
 
     }
 
+    void closeSession(UUID sessionId) {
+        def padShadow = sessionToPadShadows.get(sessionId);
+        padToShadows.get(padShadow.first).remove(padShadow.second)
+        sessionToPadShadows.remove(sessionId);
+
+    }
 }
