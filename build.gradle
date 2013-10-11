@@ -67,7 +67,7 @@ dependencies {
   compile "io.vertx:lang-groovy:$groovyLangModVersion@jar"
   compile "com.gmongo:gmongo:1.2"
   compile "org.mongodb:bson:2.9.3"
-  compile "org.jboss.aerogear.unifiedpush:unified-push-java-client:0.3.0-SNAPSHOT"
+//  compile "org.jboss.aerogear.unifiedpush:unified-push-java-client:0.3.0-SNAPSHOT"
 }
 
 test {

@@ -6,6 +6,7 @@ import groovy.json.JsonBuilder
 import groovy.json.JsonSlurper
 import org.jboss.aerogear.agpad.User
 import org.jboss.aerogear.agpad.vo.Pad
+import org.jboss.aerogear.agpad.vo.Pair
 import org.vertx.groovy.core.eventbus.EventBus
 import org.vertx.groovy.core.eventbus.Message
 
@@ -20,21 +21,19 @@ class PadHandler {
     private final GMongo mongo = new GMongo()
     private final DB db = mongo.getDB("pad")
     final EventBus bus;
+    Map<UUID, Pair<Pad, Pad>> sessionToPadShadows = new HashMap<>();
+    Pair<Pad, Set<Pad>> padToShadows =  new HashSet()
+    Map<Pair<String, String>, Pad> openPads = new HashMap();
+
+    PadHandler() {}
 
     PadHandler(EventBus bus) {
         this.bus = bus
         bus.registerHandler("pad.create", { Message message ->
-            def pad = new JsonSlurper().parseText(message.body.getString(0, message.body.length()));
+
             def reply = [:]
             try {
-                Pad test = db.pads.find(name:pad.name, ownerName:pad.ownerName)[0]?.findAll { it.key != '_id' }
-                if (test != null) {
-                    throw new RuntimeException("Duplicate Pad");
-                }
-
-                db.pads.insert(pad)
-
-                pad = db.pads.find(name:pad.name, ownerName:pad.ownerName)[0] as Pad;
+                def pad = createPad(message.body.getString(0, message.body.length()));
                 reply['body'] = new JsonBuilder(pad).toString();
                 reply['statusCode'] = 200
             } catch (Throwable t) {
@@ -56,5 +55,47 @@ class PadHandler {
 
     }
 
+    Pad createPad(String padJSON) {
+        def pad = new JsonSlurper().parseText(padJSON);
+        Pad test = db.pads.find(name:pad.name, ownerName:pad.ownerName)[0]
+        if (test != null) {
+            throw new RuntimeException("Duplicate Pad");
+        }
+
+        db.pads.insert(pad)
+
+        return db.pads.find(name:pad.name, ownerName:pad.ownerName)[0] as Pad;
+
+    }
+
+    Pad getPad(String padName, String userName) {
+        Pair p = new Pair(first: padName, second: userName);
+        if (openPads.get(p) == null) {
+            Pad pad = db.pads.find(name:padName, ownerName:userName)[0]
+            if (pad == null) {
+                throw new RuntimeException("Pad not found $padName:$userName");
+            }
+            openPads.put(p, pad);
+            return pad
+        } else {
+            return openPads.get(p)
+        }
+    }
+
+    UUID createSession(String padName, String userName) {
+        def id = UUID.randomUUID();
+        Pad pad = getPad(padName, userName)
+        Pad shadow = new Pad(content: pad.content);
+        sessionToPadShadows.put(id, new Pair<Pad, Pad>(first: pad, second: shadow ))
+        if (padToShadows.get(pad) == null) {
+            padToShadows.put(pad, new HashSet())
+        }
+        padToShadows.get(pad).add(shadow);
+        return id;
+    }
+
+    void handleDiff(String padDiffJSON) {
+
+    }
 
 }
