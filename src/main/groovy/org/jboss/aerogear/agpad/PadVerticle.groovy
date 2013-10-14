@@ -18,9 +18,11 @@
 
 package org.jboss.aerogear.agpad
 
+import groovy.json.JsonBuilder
 import groovy.util.logging.Log
 import org.jboss.aerogear.agpad.handler.LoginHandler
 import org.jboss.aerogear.agpad.handler.PadHandler
+import org.jboss.aerogear.agpad.vo.Pad
 import org.vertx.groovy.core.buffer.Buffer
 import org.vertx.groovy.core.http.ServerWebSocket
 import org.vertx.groovy.platform.Verticle
@@ -157,16 +159,64 @@ class PadVerticle extends Verticle {
                   end('')
               }
           }  else {
-              req.response.with {
+              try {
+              def pads = new JsonBuilder(padHandler.getPads(user.username));
+                req.response.with {
                   statusCode = 200
-                  end('{"name":"Test"}')
+                  end(pads)
+                }
+              } catch (Exception e) {
+                  req.response.with {
+                      statusCode = 200
+                      end("[]")
+                  }
               }
           }
 
 
       })
 
-      routeMatcher.put("/pad", {req ->
+      routeMatcher.put("/pad/:id", {req ->
+          User user = loginHandler.getUser(getSessionId(req))
+          if (user == null) {
+              req.response.with {
+                  statusCode = 403
+                  end('')
+              }
+          }  else {
+              def id = req.params.get("id");
+
+              req.dataHandler { buffer ->
+
+                  try {
+
+                      def body = new Buffer(0)
+
+                      if (id == null) {
+                          throw new RuntimeException("No id supplied");
+                      }
+
+                      body << buffer
+
+                      body = body.toString()
+
+                      Pad pad = new JsonSlurper().parseText(body);
+
+                      pad = padHandler.savePad(new JsonBuilder(pad).toString(), id);
+
+                      req.response.statusCode = 200
+                      req.response.end(new JsonBuilder(pad).toString())
+
+                  } catch (Exception e) {
+                      req.response.statusCode = 500
+                      req.response.end(e.getMessage())
+                  }
+
+              }
+          }
+      })
+
+      routeMatcher.post("/pad", {req ->
           User user = loginHandler.getUser(getSessionId(req))
           if (user == null) {
               req.response.with {
@@ -178,22 +228,33 @@ class PadVerticle extends Verticle {
 
 
               req.dataHandler { buffer ->
+
+                  try {
+
                   def body = new Buffer(0)
 
                   body << buffer
 
-                  vertx.eventBus.send("pad.create", body, { resp ->
+                  body = body.toString()
 
-                      req.response.with {
-                          statusCode = resp.body.statusCode
-                          end(resp.body.body)
-                      }
-                  })
+                  Pad pad = new JsonSlurper().parseText(body);
+                  pad.ownerName = user.username;
+
+                  pad = padHandler.createPad(new JsonBuilder(pad).toString());
+
+                  req.response.statusCode = 200
+                  req.response.end(new JsonBuilder(pad).toString())
+
+                  } catch (Exception e) {
+                      req.response.statusCode = 500
+                      req.response.end(e.getMessage())
+                  }
+
               }
           }
       })
 
-      routeMatcher.post("/pad/:id", {req ->
+      routeMatcher.post("/padDiff/:id", {req ->
           User user = loginHandler.getUser(getSessionId(req))
           if (user == null) {
               req.response.with {
@@ -201,11 +262,14 @@ class PadVerticle extends Verticle {
                   end('')
               }
           }  else {
-              def id = req.params.get("id");
-              vertx.eventBus.send("pad.$id", "test")
-              req.response.with {
-                  statusCode = 200
-                  end('{"name":"Test"}')
+              req.bodyHandler { body ->
+                  def sessionId = req.params.get("id");
+
+                  vertx.eventBus.send("padDiff.$id", body)
+                  req.response.with {
+                      statusCode = 200
+                      end('{}')
+                  }
               }
           }
 

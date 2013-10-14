@@ -48,7 +48,8 @@ install - install any jars produced to the local Maven repository (.m2)
 
  */
 
-
+sourceSets.main.java.srcDirs = []
+sourceSets.main.groovy.srcDir 'src/main/java'
 
 
 dependencies {

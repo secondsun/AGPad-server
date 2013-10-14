@@ -68,6 +68,15 @@ class PadHandler {
 
     }
 
+    List<Pad> getPads(String userName) {
+        def pads = db.pads.find(ownerName:userName)
+        if (pads == null) {
+            throw new RuntimeException("Pad not found $userName");
+        }
+        return pads;
+    }
+
+
     Pad getPad(String padName, String userName) {
         Pair p = new Pair(first: padName, second: userName);
         if (openPads.get(p) == null) {
@@ -103,5 +112,17 @@ class PadHandler {
         padToShadows.get(padShadow.first).remove(padShadow.second)
         sessionToPadShadows.remove(sessionId);
 
+    }
+
+    Pad savePad(String padJSON, String s) {
+        def pad = new JsonSlurper().parseText(padJSON);
+        Pad test = db.pads.find(_id:id)[0]
+        if (test == null) {
+            throw new RuntimeException("No pad with id:$id");
+        }
+
+        db.pads.save pad
+
+        return db.pads.findOne(_id:id) as Pad;
     }
 }
