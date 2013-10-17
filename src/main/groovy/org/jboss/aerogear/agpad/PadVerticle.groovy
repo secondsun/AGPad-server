@@ -247,6 +247,7 @@ class PadVerticle extends Verticle {
 
                   } catch (Exception e) {
                       req.response.statusCode = 500
+                      log.log(Level.SEVERE, e.getMessage(), e)
                       req.response.end(e.getMessage())
                   }
 

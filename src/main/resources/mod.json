@@ -1,6 +1,6 @@
 {
 
   // Groovy verticle
-  "main":"groovy:org.jboss.aerogear.agpad.PadVerticle",
+  "main":"groovy:org.jboss.aerogear.agpad.DemoVerticle",
   "auto-redeploy": true
 }
